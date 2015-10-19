@@ -5,8 +5,11 @@ import com.bulletphysics.collision.shapes.CollisionShape;
 import com.bulletphysics.dynamics.RigidBody;
 import com.bulletphysics.dynamics.RigidBodyConstructionInfo;
 import com.bulletphysics.linearmath.*;
+import com.github.tiggels.craftphysics.annotations.method.OnCollision;
 import com.github.tiggels.craftphysics.annotations.type.Model;
+import com.github.tiggels.craftphysics.annotations.type.Size;
 import com.github.tiggels.craftphysics.model.ModelLoader;
+import com.github.tiggels.craftphysics.util.ExtraQuatUtil;
 import org.bukkit.Location;
 import org.bukkit.util.EulerAngle;
 import org.bukkit.util.Vector;
@@ -20,13 +23,14 @@ import javax.vecmath.Vector3f;
 public class CraftRigidBody extends PhysicsObject {
 
     private RigidBody body;
+    private int size;
+    private long startTime;
 
-    CraftRigidBody(float mass, Vector3f location, Vector3f velocity, EulerAngle angel, float restitution, float friction, float linearDamp, float angularDamp) throws Exception {
+    CraftRigidBody(float mass, Location location, Vector3f velocity, EulerAngle angel, float restitution, float friction, float linearDamp, float angularDamp) throws Exception {
 
         // This constructor basically dose all the work
-        // It handels the construction of the BulletPhysics RigidBody,
-        // takes care of the parameter annotations,
-        // and sets up the method annotations with the BukkitRunnable
+        // It handels the construction of the BulletPhysics RigidBody
+        // and takes care of the parameter annotations.
 
         // This is one busy little Bee
 
@@ -37,11 +41,23 @@ public class CraftRigidBody extends PhysicsObject {
 
         CollisionShape shape;
 
+        // Annotation bit
+
         Class<CraftRigidBody> obj = CraftRigidBody.class;
 
+        // Loads Model
         if (obj.isAnnotationPresent(Model.class)) {
             Model model = obj.getAnnotation(Model.class);
             shape = loader.loadModel(model.value());
+        } else {
+            System.err.println("CraftRigidBody had unsigned model and was built with default cube model");
+            shape = new BoxShape(new Vector3f(.5f,.5f,.5f));
+        }
+
+        // Sets Size
+        if (obj.isAnnotationPresent(Size.class)) {
+            Size size = obj.getAnnotation(Size.class);
+            this.size = size.value();
         } else {
             System.err.println("CraftRigidBody had unsigned model and was built with default cube model");
             shape = new BoxShape(new Vector3f(.5f,.5f,.5f));
@@ -51,7 +67,7 @@ public class CraftRigidBody extends PhysicsObject {
 
         Transform startTransform = new Transform();
         startTransform.setIdentity();
-        startTransform.origin.set(location);
+        startTransform.origin.set(new Vector3f((float) location.getX(),(float) location.getY(),(float) location.getZ()));
         startTransform.basis.set(rotation);
 
         MotionState ms = new DefaultMotionState(startTransform); //TODO: use possible offset to make json model offset better on armor stands
@@ -108,17 +124,28 @@ public class CraftRigidBody extends PhysicsObject {
     }
 
     public float getPitch() {
-        return 0;
+        Transform transform = new Transform();
+        body.getWorldTransform(transform);
+
+        Quat4f quat = new Quat4f();
+        transform.getRotation(quat);
+
+        return ExtraQuatUtil.getPitch(quat);
     }
 
 
     //YAW
     public void setYaw(float yaw) {
-
     }
 
     public float getYaw() {
-        return 0;
+        Transform transform = new Transform();
+        body.getWorldTransform(transform);
+
+        Quat4f quat = new Quat4f();
+        transform.getRotation(quat);
+
+        return ExtraQuatUtil.getYaw(quat);
     }
 
 
@@ -128,7 +155,13 @@ public class CraftRigidBody extends PhysicsObject {
     }
 
     public float getRoll() {
-        return 0;
+        Transform transform = new Transform();
+        body.getWorldTransform(transform);
+
+        Quat4f quat = new Quat4f();
+        transform.getRotation(quat);
+
+        return ExtraQuatUtil.getRoll(quat);
     }
 
 
@@ -205,5 +238,17 @@ public class CraftRigidBody extends PhysicsObject {
 
     public float getMass() {
         return 0;
+    }
+
+    public RigidBody getBody() {
+        return body;
+    }
+
+    public long getStartTime() {
+        return startTime;
+    }
+
+    public void setStartTime(long startTime) {
+        this.startTime = startTime;
     }
 }

@@ -15,7 +15,7 @@ import java.util.List;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
-public @interface Collision {
+public @interface OnCollision {
 
     float speedX() default 0;
     float speedY() default 0;

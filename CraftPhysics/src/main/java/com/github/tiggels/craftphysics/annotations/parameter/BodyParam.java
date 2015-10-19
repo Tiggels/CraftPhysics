@@ -1,4 +1,7 @@
-package com.github.tiggels.craftphysics.annotations.param;
+package com.github.tiggels.craftphysics.annotations.parameter;
+
+import com.github.tiggels.craftphysics.physics.CraftRigidBody;
+import com.github.tiggels.craftphysics.physics.PhysicsObject;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -10,5 +13,6 @@ import java.lang.annotation.Target;
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.PARAMETER)
-public @interface VelocityParam {
+public @interface BodyParam {
+
 }

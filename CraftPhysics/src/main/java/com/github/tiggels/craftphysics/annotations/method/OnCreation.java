@@ -1,4 +1,4 @@
-package com.github.tiggels.craftphysics.annotations.param;
+package com.github.tiggels.craftphysics.annotations.method;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -9,6 +9,6 @@ import java.lang.annotation.Target;
  * Created by Miles on 10/19/15.
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.PARAMETER)
-public @interface LocationParam {
+@Target(ElementType.METHOD)
+public @interface OnCreation {
 }
