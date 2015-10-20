@@ -1,7 +1,6 @@
 package com.github.tiggels.craftphysics.solid;
 
 import com.github.tiggels.craftphysics.annotations.method.OnTime;
-import com.github.tiggels.craftphysics.annotations.type.Model;
 import com.github.tiggels.craftphysics.annotations.type.Size;
 import com.github.tiggels.craftphysics.physics.CraftRigidBody;
 import org.bukkit.Location;

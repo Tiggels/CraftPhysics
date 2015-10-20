@@ -13,6 +13,8 @@ import com.bulletphysics.dynamics.DynamicsWorld;
 import com.bulletphysics.dynamics.RigidBody;
 import com.bulletphysics.dynamics.constraintsolver.SequentialImpulseConstraintSolver;
 import com.github.tiggels.craftphysics.annotations.method.OnCollision;
+import com.github.tiggels.craftphysics.annotations.method.OnCreation;
+import com.github.tiggels.craftphysics.annotations.method.OnDestroy;
 import com.github.tiggels.craftphysics.annotations.method.OnTime;
 import com.github.tiggels.craftphysics.physics.CraftRigidBody;
 import com.google.common.collect.HashBiMap;
@@ -58,9 +60,49 @@ public class CraftDynamicsWorld {
     public void add(CraftRigidBody rigidBody) {
         rigidBody.setStartTime(System.currentTimeMillis());
         dynamicWorld.addRigidBody(rigidBody.getBody());
+        for (Method method : rigidBody.getClass().getDeclaredMethods()) {
+            if (method.isAnnotationPresent(OnCreation.class)) {
+                try {
+                    method.invoke(rigidBody, (Object[])null);
+                } catch (IllegalAccessException e) {
+                    System.err.println("#100");
+                    System.err.println("ERROR IN CALLBACK REFLECTION IN METHOD \""  + method.getName() +  "\" IN CLASS \"" + rigidBody.getClass().getName() + "\"");
+                    e.printStackTrace();
+                    System.err.println("Method call was dropped");
+
+                } catch (InvocationTargetException e) {
+                    System.err.println("#110");
+                    System.err.println("ERROR IN CALLBACK REFLECTION IN METHOD \""  + method.getName() +  "\" IN CLASS \"" + rigidBody.getClass().getName() + "\"");
+                    e.printStackTrace();
+                    System.err.println("Method call was dropped");
+
+                }
+            }
+        }
     }
 
     public void remove(CraftRigidBody rigidBody) {
+
+        for (Method method : rigidBody.getClass().getDeclaredMethods()) {
+            if (method.isAnnotationPresent(OnDestroy.class)) {
+                try {
+                    method.invoke(rigidBody, (Object[])null);
+                } catch (IllegalAccessException e) {
+                    System.err.println("#120");
+                    System.err.println("ERROR IN CALLBACK REFLECTION IN METHOD \""  + method.getName() +  "\" IN CLASS \"" + rigidBody.getClass().getName() + "\"");
+                    e.printStackTrace();
+                    System.err.println("Method call was dropped");
+
+                } catch (InvocationTargetException e) {
+                    System.err.println("#130");
+                    System.err.println("ERROR IN CALLBACK REFLECTION IN METHOD \""  + method.getName() +  "\" IN CLASS \"" + rigidBody.getClass().getName() + "\"");
+                    e.printStackTrace();
+                    System.err.println("Method call was dropped");
+
+                }
+            }
+        }
+
         dynamicWorld.removeRigidBody(rigidBody.getBody());
     }
 
@@ -178,13 +220,13 @@ public class CraftDynamicsWorld {
                     try {
                         pair.fst.invoke(pair.snd, (Object[])null);
                     } catch (IllegalAccessException e) {
-                        System.err.println("#1212");
+                        System.err.println("#140");
                         System.err.println("ERROR IN CALLBACK REFLECTION IN METHOD \""  + pair.fst.getName() +  "\" IN CLASS \"" + pair.snd.getClass().getName() + "\"");
                         e.printStackTrace();
                         System.err.println("Method call was dropped");
 
                     } catch (InvocationTargetException e) {
-                        System.err.println("#1214");
+                        System.err.println("#150");
                         System.err.println("ERROR IN CALLBACK REFLECTION IN METHOD \""  + pair.fst.getName() +  "\" IN CLASS \"" + pair.snd.getClass().getName() + "\"");
                         e.printStackTrace();
                         System.err.println("Method call was dropped");
