@@ -65,13 +65,13 @@ public class CraftDynamicsWorld {
                 try {
                     method.invoke(rigidBody, (Object[])null);
                 } catch (IllegalAccessException e) {
-                    System.err.println("#100");
+                    System.err.println("#130");
                     System.err.println("ERROR IN CALLBACK REFLECTION IN METHOD \""  + method.getName() +  "\" IN CLASS \"" + rigidBody.getClass().getName() + "\"");
                     e.printStackTrace();
                     System.err.println("Method call was dropped");
 
                 } catch (InvocationTargetException e) {
-                    System.err.println("#110");
+                    System.err.println("#131");
                     System.err.println("ERROR IN CALLBACK REFLECTION IN METHOD \""  + method.getName() +  "\" IN CLASS \"" + rigidBody.getClass().getName() + "\"");
                     e.printStackTrace();
                     System.err.println("Method call was dropped");
@@ -88,13 +88,13 @@ public class CraftDynamicsWorld {
                 try {
                     method.invoke(rigidBody, (Object[])null);
                 } catch (IllegalAccessException e) {
-                    System.err.println("#120");
+                    System.err.println("#140");
                     System.err.println("ERROR IN CALLBACK REFLECTION IN METHOD \""  + method.getName() +  "\" IN CLASS \"" + rigidBody.getClass().getName() + "\"");
                     e.printStackTrace();
                     System.err.println("Method call was dropped");
 
                 } catch (InvocationTargetException e) {
-                    System.err.println("#130");
+                    System.err.println("#141");
                     System.err.println("ERROR IN CALLBACK REFLECTION IN METHOD \""  + method.getName() +  "\" IN CLASS \"" + rigidBody.getClass().getName() + "\"");
                     e.printStackTrace();
                     System.err.println("Method call was dropped");
@@ -132,6 +132,9 @@ public class CraftDynamicsWorld {
                 List<CraftRigidBody> rigidBodies = new ArrayList<CraftRigidBody>();
                 for (CollisionObject obj : csobj) {
                     rigidBodies.add((CraftRigidBody)obj.getUserPointer());
+                }
+                for (CraftRigidBody body : rigidBodies) {
+                    body.clearCollidingBodys();
                 }
                 List<Pair<Method, ? extends CraftRigidBody>> methods = new ArrayList<Pair<Method, ? extends CraftRigidBody>>();
 
@@ -220,13 +223,13 @@ public class CraftDynamicsWorld {
                     try {
                         pair.fst.invoke(pair.snd, (Object[])null);
                     } catch (IllegalAccessException e) {
-                        System.err.println("#140");
+                        System.err.println("#150");
                         System.err.println("ERROR IN CALLBACK REFLECTION IN METHOD \""  + pair.fst.getName() +  "\" IN CLASS \"" + pair.snd.getClass().getName() + "\"");
                         e.printStackTrace();
                         System.err.println("Method call was dropped");
 
                     } catch (InvocationTargetException e) {
-                        System.err.println("#150");
+                        System.err.println("#151");
                         System.err.println("ERROR IN CALLBACK REFLECTION IN METHOD \""  + pair.fst.getName() +  "\" IN CLASS \"" + pair.snd.getClass().getName() + "\"");
                         e.printStackTrace();
                         System.err.println("Method call was dropped");

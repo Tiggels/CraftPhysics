@@ -16,6 +16,7 @@ import org.bukkit.util.Vector;
 
 import javax.vecmath.Quat4f;
 import javax.vecmath.Vector3f;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -46,7 +47,7 @@ public class CraftRigidBody extends PhysicsObject {
 
         // Annotation bit
 
-        Class<CraftRigidBody> obj = CraftRigidBody.class;
+        Class<? extends CraftRigidBody> obj = this.getClass();
 
         // Loads Model
         if (obj.isAnnotationPresent(Model.class)) {
@@ -63,7 +64,6 @@ public class CraftRigidBody extends PhysicsObject {
             this.size = size.value();
         } else {
             System.err.println("CraftRigidBody had unsigned model and was built with default cube model");
-            shape = new BoxShape(new Vector3f(.5f,.5f,.5f));
         }
 
         shape.calculateLocalInertia(mass, velocity);
@@ -80,6 +80,24 @@ public class CraftRigidBody extends PhysicsObject {
         body.setRestitution(restitution);
         body.setFriction(friction);
         body.setDamping(linearDamp, angularDamp);
+        body.setUserPointer(this);
+    }
+
+    public CraftRigidBody(RigidBody newBody) throws Exception {
+
+        Class<? extends CraftRigidBody> obj = this.getClass();
+
+        ModelLoader loader = new ModelLoader();
+
+        // Sets Size
+        if (obj.isAnnotationPresent(Size.class)) {
+            Size size = obj.getAnnotation(Size.class);
+            this.size = size.value();
+        } else {
+            this.size = 1;
+        }
+
+        body = newBody;
         body.setUserPointer(this);
     }
 
@@ -265,5 +283,40 @@ public class CraftRigidBody extends PhysicsObject {
 
     public void addCollidingBody(CraftRigidBody body) {
         collidingBodies.add(body);
+    }
+
+    public CraftRigidBody CraftRigidBodyTransfer(Class<? extends CraftRigidBody> newBodyClass) {
+        // if (RUBY == JAVA) {
+        CraftRigidBody newBody;
+        try {
+            newBody = newBodyClass.getConstructor(RigidBody.class).newInstance(body);
+        } catch (NoSuchMethodException e) {
+            System.err.println("#160");
+            System.err.println("ERROR IN TRANSFER FROM \"" + this.getClass().getName() + "\" and \"" + newBodyClass.getName());
+            e.printStackTrace();
+            System.err.println("Transfer was ");
+            return null;
+        } catch (IllegalAccessException e) {
+            System.err.println("#161");
+            System.err.println("ERROR IN TRANSFER FROM \"" + this.getClass().getName() + "\" and \"" + newBodyClass.getName());
+            e.printStackTrace();
+            System.err.println("Transfer was ");
+            return null;
+        } catch (InvocationTargetException e) {
+            System.err.println("#162");
+            System.err.println("ERROR IN TRANSFER FROM \"" + this.getClass().getName() + "\" and \"" + newBodyClass.getName());
+            e.printStackTrace();
+            System.err.println("Transfer was ");
+            return null;
+        } catch (InstantiationException e) {
+            System.err.println("#163");
+            System.err.println("ERROR IN TRANSFER FROM \"" + this.getClass().getName() + "\" and \"" + newBodyClass.getName());
+            e.printStackTrace();
+            System.err.println("Transfer was ");
+            return null;
+        }
+        this.body = null;
+        return newBody;
+        // }
     }
 }
