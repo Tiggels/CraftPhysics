@@ -16,6 +16,8 @@ import org.bukkit.util.Vector;
 
 import javax.vecmath.Quat4f;
 import javax.vecmath.Vector3f;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by Miles on 10/17/15.
@@ -25,8 +27,9 @@ public class CraftRigidBody extends PhysicsObject {
     private RigidBody body;
     private int size;
     private long startTime;
+    private List<CraftRigidBody> collidingBodies = new ArrayList<CraftRigidBody>();
 
-    CraftRigidBody(float mass, Location location, Vector3f velocity, EulerAngle angel, float restitution, float friction, float linearDamp, float angularDamp) throws Exception {
+    public CraftRigidBody(float mass, Location location, Vector3f velocity, EulerAngle angel, float restitution, float friction, float linearDamp, float angularDamp) throws Exception {
 
         // This constructor basically dose all the work
         // It handels the construction of the BulletPhysics RigidBody
@@ -250,5 +253,17 @@ public class CraftRigidBody extends PhysicsObject {
 
     public void setStartTime(long startTime) {
         this.startTime = startTime;
+    }
+
+    public List<CraftRigidBody> getCollidingBodys() {
+        return collidingBodies;
+    }
+
+    public void clearCollidingBodys() {
+        this.collidingBodies = new ArrayList<CraftRigidBody>();
+    }
+
+    public void addCollidingBody(CraftRigidBody body) {
+        collidingBodies.add(body);
     }
 }

@@ -4,34 +4,33 @@ import com.bulletphysics.collision.broadphase.AxisSweep3;
 import com.bulletphysics.collision.broadphase.Dispatcher;
 import com.bulletphysics.collision.dispatch.CollisionConfiguration;
 import com.bulletphysics.collision.dispatch.CollisionDispatcher;
+import com.bulletphysics.collision.dispatch.CollisionObject;
 import com.bulletphysics.collision.dispatch.DefaultCollisionConfiguration;
 import com.bulletphysics.collision.narrowphase.ManifoldPoint;
 import com.bulletphysics.collision.narrowphase.PersistentManifold;
 import com.bulletphysics.dynamics.DiscreteDynamicsWorld;
 import com.bulletphysics.dynamics.DynamicsWorld;
-import com.bulletphysics.dynamics.InternalTickCallback;
 import com.bulletphysics.dynamics.RigidBody;
 import com.bulletphysics.dynamics.constraintsolver.SequentialImpulseConstraintSolver;
 import com.github.tiggels.craftphysics.annotations.method.OnCollision;
 import com.github.tiggels.craftphysics.annotations.method.OnTime;
-import com.github.tiggels.craftphysics.annotations.parameter.BodyParam;
-import com.github.tiggels.craftphysics.annotations.parameter.LocationParam;
-import com.github.tiggels.craftphysics.annotations.parameter.RotationParam;
-import com.github.tiggels.craftphysics.annotations.parameter.TimeParam;
 import com.github.tiggels.craftphysics.physics.CraftRigidBody;
-import com.github.tiggels.craftphysics.physics.PhysicsObject;
-import com.sun.jdi.InvocationException;
+import com.google.common.collect.HashBiMap;
+import com.sun.tools.javac.util.Pair;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.junit.experimental.theories.internal.ParameterizedAssertionError;
 
+import javax.vecmath.Tuple2d;
 import javax.vecmath.Vector3f;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 
 /**
@@ -87,6 +86,13 @@ public class CraftDynamicsWorld {
 
                 // CALLBACK TESTS
 
+                List<CollisionObject> csobj = dynamicWorld.getCollisionObjectArray();
+                List<CraftRigidBody> rigidBodies = new ArrayList<CraftRigidBody>();
+                for (CollisionObject obj : csobj) {
+                    rigidBodies.add((CraftRigidBody)obj.getUserPointer());
+                }
+                List<Pair<Method, ? extends CraftRigidBody>> methods = new ArrayList<Pair<Method, ? extends CraftRigidBody>>();
+
                 // ALL OF THIS DOWN TO LINE 196 OR SO IS FOR COLLISION DETECTION AND HANDING
                 Dispatcher dispatcher = dynamicWorld.getDispatcher();
                 int manifoldCount = dispatcher.getNumManifolds();
@@ -105,93 +111,84 @@ public class CraftDynamicsWorld {
                     }
                     if (hit) {
 
-                        // The following two lines are optional.
                         RigidBody object1 = (RigidBody)manifold.getBody0();
                         RigidBody object2 = (RigidBody)manifold.getBody1();
 
                         CraftRigidBody physicsObject1 = (CraftRigidBody)object1.getUserPointer();
                         CraftRigidBody physicsObject2 = (CraftRigidBody)object2.getUserPointer();
 
+                        physicsObject1.addCollidingBody(physicsObject2);
+                        physicsObject2.addCollidingBody(physicsObject1);
+
                         for (Method method : physicsObject1.getClass().getMethods()) {
                             if (method.isAnnotationPresent(OnCollision.class)) {
-                                if (method.isAnnotationPresent(OnTime.class) && physicsObject1.getStartTime() > method.getAnnotation(OnTime.class).value()) {
 
-                                    List<Object> perimeters = new ArrayList<Object>();
+                                if (    method.getAnnotation(OnCollision.class).speedX() > Math.abs(physicsObject1.getVelcotyX()) &&
+                                        method.getAnnotation(OnCollision.class).speedY() > Math.abs(physicsObject1.getVelcotyY()) &&
+                                        method.getAnnotation(OnCollision.class).speedZ() > Math.abs(physicsObject1.getVelcotyZ())) {
 
-                                    for (Parameter parameter : method.getParameters()) {
-                                        if (parameter.isAnnotationPresent(BodyParam.class)) {
-                                            perimeters.add(physicsObject2);
-                                        } else if (parameter.isAnnotationPresent(LocationParam.class)) {
-                                            perimeters.add(new Location(world, normal.x, normal.y, normal.z));
-                                        } else if (parameter.isAnnotationPresent(TimeParam.class)) {
-                                            perimeters.add(time);
-                                        } else {
-                                            System.err.println("#1210");
-                                            throw new ParameterizedAssertionError(
-                                                    new Throwable("Problem with parameters in method \"" + method.getName() + "\" in class \"" + physicsObject1.getClass().getName() + "\""), 
-                                                    method.getName(), perimeters);
+                                    for (Class<? extends CraftRigidBody> craftRigidBody : method.getAnnotation(OnCollision.class).type()) {
+                                        if (craftRigidBody.equals(physicsObject1.getClass())) {
+                                            methods.add(new Pair<Method, CraftRigidBody>(method, physicsObject1));
+                                        } else if (methods.contains(new Pair<Method, CraftRigidBody>(method, physicsObject1))) {
+                                            methods.remove(new Pair<Method, CraftRigidBody>(method, physicsObject1));
                                         }
                                     }
-                                    
-                                    try {
-                                        method.invoke(physicsObject1, perimeters);
-                                    } catch (IllegalAccessException e) {
-                                        System.err.println("#1212");
-                                        System.err.println("ERROR IN CALLBACK REFLECTION IN METHOD \""  + method.getName() +  "\" IN CLASS \"" + physicsObject1.getClass().getName() + "\"");
-                                        e.printStackTrace();
-                                        System.err.println("Method call was dropped");
-                                        
-                                    } catch (InvocationTargetException e) {
-                                        System.err.println("#1214");
-                                        System.err.println("ERROR IN CALLBACK REFLECTION IN METHOD \""  + method.getName() +  "\" IN CLASS \"" + physicsObject1.getClass().getName() + "\"");
-                                        e.printStackTrace();
-                                        System.err.println("Method call was dropped");
-                                        
-                                    }
+
+                                } else if (methods.contains(new Pair<Method, CraftRigidBody>(method, physicsObject1))) {
+                                    methods.remove(new Pair<Method, CraftRigidBody>(method, physicsObject1));
                                 }
                             }
                         }
 
                         for (Method method : physicsObject2.getClass().getMethods()) {
                             if (method.isAnnotationPresent(OnCollision.class)) {
-                                if (method.isAnnotationPresent(OnTime.class) && physicsObject2.getStartTime() > method.getAnnotation(OnTime.class).value()) {
 
-                                    List<Object> perimeters = new ArrayList<Object>();
+                                if (    method.getAnnotation(OnCollision.class).speedX() > Math.abs(physicsObject2.getVelcotyX()) &&
+                                        method.getAnnotation(OnCollision.class).speedY() > Math.abs(physicsObject2.getVelcotyY()) &&
+                                        method.getAnnotation(OnCollision.class).speedZ() > Math.abs(physicsObject2.getVelcotyZ())) {
 
-                                    for (Parameter parameter : method.getParameters()) {
-                                        if (parameter.isAnnotationPresent(BodyParam.class)) {
-                                            perimeters.add(physicsObject1);
-                                        } else if (parameter.isAnnotationPresent(LocationParam.class)) {
-                                            perimeters.add(new Location(world, normal.x, normal.y, normal.z));
-                                        } else if (parameter.isAnnotationPresent(TimeParam.class)) {
-                                            perimeters.add(time);
-                                        } else {
-                                            System.err.println("#1220");
-                                            throw new ParameterizedAssertionError(
-                                                    new Throwable("Problem with parameters in method \"" + method.getName() + "\" in class \"" + physicsObject2.getClass().getName() + "\""),
-                                                    method.getName(), perimeters);
+                                    for (Class<? extends CraftRigidBody> craftRigidBody : method.getAnnotation(OnCollision.class).type()) {
+                                        if (craftRigidBody.equals(physicsObject2.getClass())) {
+                                            methods.add(new Pair<Method, CraftRigidBody>(method, physicsObject2));
+                                        } else if (methods.contains(new Pair<Method, CraftRigidBody>(method, physicsObject2))) {
+                                            methods.remove(new Pair<Method, CraftRigidBody>(method, physicsObject2));
                                         }
                                     }
 
-                                    try {
-                                        method.invoke(physicsObject2, perimeters);
-                                    } catch (IllegalAccessException e) {
-                                        System.err.println("#1222");
-                                        System.err.println("ERROR IN CALLBACK REFLECTION IN METHOD \""  + method.getName() +  "\" IN CLASS \"" + physicsObject2.getClass().getName() + "\"");
-                                        e.printStackTrace();
-                                        System.err.println("Method call was dropped");
-
-                                    } catch (InvocationTargetException e) {
-                                        System.err.println("#1224");
-                                        System.err.println("ERROR IN CALLBACK REFLECTION IN METHOD \""  + method.getName() +  "\" IN CLASS \"" + physicsObject2.getClass().getName() + "\"");
-                                        e.printStackTrace();
-                                        System.err.println("Method call was dropped");
-
-                                    }
+                                } else if (methods.contains(new Pair<Method, CraftRigidBody>(method, physicsObject2))) {
+                                    methods.remove(new Pair<Method, CraftRigidBody>(method, physicsObject2));
                                 }
                             }
                         }
-                        
+                    }
+                }
+
+                for (CraftRigidBody rigidBody : rigidBodies) {
+                    for (Method method : rigidBody.getClass().getDeclaredMethods()) {
+                        if (method.isAnnotationPresent(OnTime.class) && method.getAnnotation(OnTime.class).value() < time) {
+                            methods.add(new Pair<Method, CraftRigidBody>(method, rigidBody ));
+                        } else if (methods.contains(new Pair<Method, CraftRigidBody>(method, rigidBody ))) {
+                            methods.remove(new Pair<Method, CraftRigidBody>(method, rigidBody ));
+                        }
+                    }
+                }
+
+                for (Pair<Method, ? extends CraftRigidBody> pair : methods) {
+                    try {
+                        pair.fst.invoke(pair.snd, (Object[])null);
+                    } catch (IllegalAccessException e) {
+                        System.err.println("#1212");
+                        System.err.println("ERROR IN CALLBACK REFLECTION IN METHOD \""  + pair.fst.getName() +  "\" IN CLASS \"" + pair.snd.getClass().getName() + "\"");
+                        e.printStackTrace();
+                        System.err.println("Method call was dropped");
+
+                    } catch (InvocationTargetException e) {
+                        System.err.println("#1214");
+                        System.err.println("ERROR IN CALLBACK REFLECTION IN METHOD \""  + pair.fst.getName() +  "\" IN CLASS \"" + pair.snd.getClass().getName() + "\"");
+                        e.printStackTrace();
+                        System.err.println("Method call was dropped");
+
                     }
                 }
             }
